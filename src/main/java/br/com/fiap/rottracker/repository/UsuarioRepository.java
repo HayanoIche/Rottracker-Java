@@ -19,10 +19,35 @@ public class UsuarioRepository
     private final DataSource dataSource;
     public UsuarioRepository(DataSource dataSource) { this.dataSource = dataSource; }
 
+    private static final String SQL_INSERT = "INSERT INTO tb_usuarios(nome, email, status, senha_hash) VALUES (?, ?, ?, ?, ?)";
+
     private static final String SQL_SELECT_ALL = "SELECT usuario_id, nome, email, status, senha_hash FROM tb_usuarios ORDER BY usuario_id";
     private static final String SQL_SELECT_ID = "SELECT usuario_id, nome, email, status, senha_hash FROM tb_usuarios WHERE usuario_id = ?";
     private static final String SQL_SELECT_NOME = "SELECT usuario_id, nome, email, status, senha_hash FROM tb_usuarios WHERE lower(nome) LIKE ? ORDER BY nome";
 
+    // ---------------------------- Create ----------------------------
+    public void create(Usuario user) {
+        Connection con = DataSourceUtils.getConnection(dataSource);
+        try (PreparedStatement pstmt = con.prepareStatement(SQL_INSERT, new String[]{"usuario_id"})) {
+            pstmt.setString(1, user.getNome());
+            pstmt.setString(4, user.getStatus());
+            pstmt.setString(5, user.getEmail());
+            pstmt.setString(6, user.getSenha());
+
+            pstmt.executeUpdate();
+
+            try (ResultSet rs = pstmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    user.setId(rs.getInt(1));
+                }
+            }
+            
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao inserir usuário", e);
+        } finally {
+            DataSourceUtils.releaseConnection(con, dataSource);
+        }
+    }
 
     // ---------------------------- Read ----------------------------
     public List<Usuario> readAll()
@@ -83,7 +108,7 @@ public class UsuarioRepository
         }
         return lista;
     }
-    
+
 
     // ---------------------------- Função auxiliar ----------------------------
     private Usuario mapearUsuario(ResultSet rs) throws SQLException {
