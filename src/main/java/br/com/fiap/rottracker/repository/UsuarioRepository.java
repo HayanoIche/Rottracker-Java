@@ -25,6 +25,8 @@ public class UsuarioRepository
     private static final String SQL_SELECT_ID = "SELECT usuario_id, nome, email, status, senha_hash FROM tb_usuarios WHERE usuario_id = ?";
     private static final String SQL_SELECT_NOME = "SELECT usuario_id, nome, email, status, senha_hash FROM tb_usuarios WHERE lower(nome) LIKE ? ORDER BY nome";
 
+    private static final String SQL_UPDATE = "UPDATE tb_usuarios SET nome = ?, email = ?, status = ?, senha_hash = ? WHERE usuario_id = ?";
+
     // ---------------------------- Create ----------------------------
     public void create(Usuario user) {
         Connection con = DataSourceUtils.getConnection(dataSource);
@@ -41,13 +43,14 @@ public class UsuarioRepository
                     user.setId(rs.getInt(1));
                 }
             }
-            
+
         } catch (SQLException e) {
             throw new RuntimeException("Erro ao inserir usuário", e);
         } finally {
             DataSourceUtils.releaseConnection(con, dataSource);
         }
     }
+
 
     // ---------------------------- Read ----------------------------
     public List<Usuario> readAll()
@@ -110,6 +113,24 @@ public class UsuarioRepository
     }
 
 
+    // ---------------------------- Update ----------------------------
+    public void update(Usuario user) {
+        Connection con = DataSourceUtils.getConnection(dataSource);
+        try (PreparedStatement pstmt = con.prepareStatement(SQL_UPDATE)) {
+            pstmt.setString(1, user.getNome());
+            pstmt.setString(2, user.getStatus());
+            pstmt.setString(3, user.getEmail());
+            pstmt.setString(4, user.getSenha());
+            pstmt.setInt(5, user.getId());
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao atualizar usuário", e);
+        } finally {
+            DataSourceUtils.releaseConnection(con, dataSource);
+        }
+    }
+
+
     // ---------------------------- Função auxiliar ----------------------------
     private Usuario mapearUsuario(ResultSet rs) throws SQLException {
         Usuario user = new Usuario();
@@ -121,6 +142,4 @@ public class UsuarioRepository
         user.setSenha(rs.getString("senha_hash"));
         return user;
     }
-
-
 }
