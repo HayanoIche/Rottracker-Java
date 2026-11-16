@@ -20,7 +20,11 @@ public class UsuarioRepository
     public UsuarioRepository(DataSource dataSource) { this.dataSource = dataSource; }
 
     private static final String SQL_SELECT_ALL = "SELECT usuario_id, nome, email, status, senha_hash FROM tb_usuarios ORDER BY usuario_id";
+    private static final String SQL_SELECT_ID = "SELECT usuario_id, nome, email, status, senha_hash FROM tb_usuarios WHERE usuario_id = ?";
+    private static final String SQL_SELECT_NOME = "SELECT usuario_id, nome, email, status, senha_hash FROM tb_usuarios WHERE lower(nome) LIKE ? ORDER BY nome";
 
+
+    // ---------------------------- Read ----------------------------
     public List<Usuario> readAll()
     {
         List<Usuario> lista = new ArrayList<>();
@@ -40,7 +44,48 @@ public class UsuarioRepository
         return lista;
     }
 
-    // Função auxiliar
+
+    public Usuario read(int id) {
+        Connection con = DataSourceUtils.getConnection(dataSource);
+        try (PreparedStatement pstmt = con.prepareStatement(SQL_SELECT_ID)) {
+            pstmt.setLong(1, id);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    Usuario user = mapearUsuario(rs);
+                    return user;
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao buscar usuário por ID", e);
+        } finally {
+            DataSourceUtils.releaseConnection(con, dataSource);
+        }
+        return null;
+    }
+
+
+    public List<Usuario> readByName(String name)
+    {
+        List<Usuario> lista = new ArrayList<>();
+        Connection con = DataSourceUtils.getConnection(dataSource);
+        try (PreparedStatement pstmt = con.prepareStatement(SQL_SELECT_NOME)) {
+            pstmt.setString(1, "%" + name.toLowerCase() + "%");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Usuario user = mapearUsuario(rs);
+                    lista.add(user);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Erro ao buscar usuários por nome", e);
+        } finally {
+            DataSourceUtils.releaseConnection(con, dataSource);
+        }
+        return lista;
+    }
+    
+
+    // ---------------------------- Função auxiliar ----------------------------
     private Usuario mapearUsuario(ResultSet rs) throws SQLException {
         Usuario user = new Usuario();
 
